@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assinar Documento - AldenSign</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+        }
+        .signature-field {
+            border: 2px dashed #3b82f6;
+            background-color: rgba(59, 130, 246, 0.1);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            z-index: 10;
+            min-width: 200px;
+            min-height: 60px;
+            transition: all 0.2s ease;
+        }
+        .signature-field:hover {
+            background-color: rgba(59, 130, 246, 0.2);
+            border-color: #2563eb;
+        }
+        .signature-field.active {
+            background-color: rgba(59, 130, 246, 0.2);
+            border: 2px solid #2563eb;
+        }
+        .document-page {
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            margin: 0 auto 15px auto;
+            position: relative;
+        }
+        .pdf-page {
+            position: relative;
+            margin-bottom: 15px;
+            background-color: white;
+        }
+        .loading-spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid #3b82f6;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #signature-pad {
+            border: 1px solid #e2e8f0;
+            background-color: white;
+            border-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+<body class="font-sans bg-gray-100">
+    <div class="min-h-screen flex flex-col">
+        <header class="bg-white shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+                <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <h1 class="ml-2 text-lg font-bold text-gray-800">AldenSign</h1>
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-grow">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h2 class="text-2xl font-semibold text-gray-800 mb-4">Assinar Documento</h2>
+                    
+                    <div class="bg-gray-100 p-4 rounded-lg mb-6">
+                        <div id="document-container" class="overflow-auto max-h-[70vh]">
+                            <div id="loading-indicator" class="flex items-center justify-center py-10">
+                                <div class="loading-spinner mr-2"></div>
+                                <span class="text-gray-600 text-sm">Carregando documento...</span>
+                            </div>
+                            <div id="pdf-container"></div>
+                        </div>
+                    </div>
+
+                    <div class="mb-6">
+                        <h3 class="text-lg font-medium text-gray-800 mb-2">Desenhe sua assinatura</h3>
+                        <canvas id="signature-pad" class="w-full h-48 mb-2"></canvas>
+                        <div class="flex justify-between">
+                            <button id="clear-signature" class="text-gray-600 hover:text-gray-800 text-sm">
+                                Clear
+                            </button>
+                            <button id="save-signature" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm">
+                                Salvar Assinatura
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-blue-50 p-4 rounded-md mb-6">
+                        <p class="text-blue-700 text-sm">
+                            Revise o documento e assine nos campos de assinatura designados. Clique em cada campo de assinatura para adicionar sua assinatura.
+                        </p>
+                    </div>
+
+                    <div class="flex justify-end">
+                        <button id="submit-signatures" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md text-sm">
+                            Enviar Assinaturas
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="bg-white border-t border-gray-200 py-2 mt-8">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <p class="text-center text-gray-500 text-xs">© 2025 AldenSign. Todos os direitos reservados.</p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            function initializeSigning() {
+                // Initialize PDF.js
+                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+                
+                // Initialize Signature Pad with better settings
+                const canvas = document.getElementById('signature-pad');
+                const signaturePad = new SignaturePad(canvas, {
+                    backgroundColor: 'rgba(255, 255, 255, 0)',
+                    penColor: 'rgb(0, 0, 0)',
+                    minWidth: 1,
+                    maxWidth: 2.5,
+                    velocityFilterWeight: 0.7
+                });
+
+                // Resize canvas to fill its container
+                function resizeCanvas() {
+                    const ratio = Math.max(window.devicePixelRatio || 1, 1);
+                    canvas.width = canvas.offsetWidth * ratio;
+                    canvas.height = canvas.offsetHeight * ratio;
+                    canvas.getContext("2d").scale(ratio, ratio);
+                    signaturePad.clear(); // otherwise isEmpty() might return incorrect value
+                }
+
+                window.addEventListener("resize", resizeCanvas);
+                resizeCanvas();
+
+                // Get document ID from URL
+                const documentId = window.location.pathname.split('/').pop();
+                let currentPdf = null;
+                let signatureFields = [];
+                let currentSignature = null;
+
+                // DOM elements
+                const pdfContainer = document.getElementById('pdf-container');
+                const loadingIndicator = document.getElementById('loading-indicator');
+                const clearSignatureBtn = document.getElementById('clear-signature');
+                const saveSignatureBtn = document.getElementById('save-signature');
+                const submitSignaturesBtn = document.getElementById('submit-signatures');
+
+                // Load document
+                fetch(`/api/documents/${documentId}/check`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (!data.filename) {
+                            throw new Error('No filename received from server');
+                        }
+                        signatureFields = data.signatureFields || [];
+                        loadDocument(data.filename);
+                    })
+                    .catch(error => {
+                        console.error('Error loading document:', error);
+                        loadingIndicator.classList.add('hidden');
+                        pdfContainer.innerHTML = `
+                            <div class="p-8 text-center text-red-600">
+                                <p class="mb-4">Erro ao carregar documento: ${error.message}</p>
+                                <p class="text-sm">Por favor, tente novamente ou entre em contato com o suporte se o problema persistir.</p>
+                            </div>`;
+                    });
+
+                function loadDocument(filename) {
+                    fetch(`http://localhost:3000/uploads/${filename}`)
+                        .then(response => response.arrayBuffer())
+                        .then(data => {
+                            const typedarray = new Uint8Array(data);
+                            pdfjsLib.getDocument(typedarray).promise.then(function(pdf) {
+                                currentPdf = pdf;
+                                loadingIndicator.classList.add('hidden');
+                                pdfContainer.innerHTML = ''; // Clear previous content
+                                
+                                // Load all pages
+                                let loadedPages = 0;
+                                for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                                    renderPage(pdf, pageNum).then(() => {
+                                        loadedPages++;
+                                        if (loadedPages === pdf.numPages) {
+                                            // All pages are rendered, now add signature fields
+                                            addSignatureFields();
+                                        }
+                                    });
+                                }
+                            });
+                        });
+                }
+
+                function renderPage(pdf, pageNumber) {
+                    return new Promise((resolve, reject) => {
+                        pdf.getPage(pageNumber).then(function(page) {
+                            const viewport = page.getViewport({ scale: 1.5 });
+                            
+                            const pageDiv = document.createElement('div');
+                            pageDiv.className = 'pdf-page';
+                            pageDiv.dataset.pageNumber = pageNumber;
+                            
+                            const canvas = document.createElement('canvas');
+                            const context = canvas.getContext('2d');
+                            canvas.height = viewport.height;
+                            canvas.width = viewport.width;
+                            
+                            pageDiv.appendChild(canvas);
+                            pdfContainer.appendChild(pageDiv);
+                            
+                            const renderContext = {
+                                canvasContext: context,
+                                viewport: viewport
+                            };
+                            
+                            page.render(renderContext).promise.then(() => {
+                                resolve();
+                            }).catch(reject);
+                        });
+                    });
+                }
+
+                function addSignatureFields() {
+                    console.log('Adding signature fields:', signatureFields); // Debug log
+                    
+                    signatureFields.forEach(field => {
+                        const page = document.querySelector(`.pdf-page[data-page-number="${field.page}"]`);
+                        if (page) {
+                            const signatureField = document.createElement('div');
+                            signatureField.className = 'signature-field';
+                            signatureField.style.width = field.width;
+                            signatureField.style.height = field.height;
+                            signatureField.style.left = field.left;
+                            signatureField.style.top = field.top;
+                            signatureField.dataset.fieldId = field.id;
+                            
+                            // Add a more visible style to the signature field
+                            signatureField.style.border = '2px dashed #3b82f6';
+                            signatureField.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+                            signatureField.style.cursor = 'pointer';
+                            signatureField.style.position = 'absolute';
+                            signatureField.style.zIndex = '10';
+                            
+                            signatureField.innerHTML = `
+                                <div class="flex items-center justify-center w-full h-full">
+                                    <div class="flex items-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                        </svg>
+                                        <span class="text-blue-600 text-sm font-medium">Click to sign here</span>
+                                    </div>
+                                </div>
+                            `;
+                            
+                            signatureField.addEventListener('click', function() {
+                                currentSignature = this;
+                                // Highlight the selected field
+                                document.querySelectorAll('.signature-field').forEach(field => {
+                                    field.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+                                    field.style.border = '2px dashed #3b82f6';
+                                });
+                                this.style.backgroundColor = 'rgba(59, 130, 246, 0.2)';
+                                this.style.border = '2px solid #3b82f6';
+                                
+                                // Scroll to signature pad
+                                document.getElementById('signature-pad').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            });
+                            
+                            page.appendChild(signatureField);
+                        } else {
+                            console.warn(`Page ${field.page} not found for signature field ${field.id}`); // Debug log
+                        }
+                    });
+                }
+
+                // Clear signature
+                clearSignatureBtn.addEventListener('click', function() {
+                    signaturePad.clear();
+                });
+
+                // Save signature
+                saveSignatureBtn.addEventListener('click', function() {
+                    if (signaturePad.isEmpty()) {
+                        alert('Please draw your signature first.');
+                        return;
+                    }
+
+                    if (!currentSignature) {
+                        alert('Please click on a signature field first.');
+                        return;
+                    }
+
+                    const signatureData = signaturePad.toDataURL('image/png');
+                    
+                    // Create a temporary image to get the actual signature dimensions
+                    const img = new Image();
+                    img.src = signatureData;
+                    img.onload = function() {
+                        const aspectRatio = img.width / img.height;
+                        
+                        // Get the signature field dimensions
+                        const fieldWidth = parseInt(currentSignature.style.width);
+                        const fieldHeight = parseInt(currentSignature.style.height);
+                        
+                        // Calculate dimensions to maintain aspect ratio
+                        let newWidth = fieldWidth;
+                        let newHeight = fieldHeight;
+                        
+                        if (fieldWidth / fieldHeight > aspectRatio) {
+                            newWidth = fieldHeight * aspectRatio;
+                        } else {
+                            newHeight = fieldWidth / aspectRatio;
+                        }
+                        
+                        // Center the signature in the field
+                        const leftOffset = (fieldWidth - newWidth) / 2;
+                        const topOffset = (fieldHeight - newHeight) / 2;
+                        
+                        // Update the signature field
+                        currentSignature.style.backgroundImage = `url(${signatureData})`;
+                        currentSignature.style.backgroundSize = `${newWidth}px ${newHeight}px`;
+                        currentSignature.style.backgroundPosition = `center center`;
+                        currentSignature.style.backgroundRepeat = 'no-repeat';
+                        currentSignature.innerHTML = '';
+                        currentSignature.classList.add('signed'); // Add class to mark as signed
+                        
+                        // Store signature data
+                        const fieldId = parseInt(currentSignature.dataset.fieldId);
+                        const fieldIndex = signatureFields.findIndex(field => field.id === fieldId);
+                        if (fieldIndex !== -1) {
+                            signatureFields[fieldIndex] = {
+                                ...signatureFields[fieldIndex],
+                                signature: signatureData,
+                                width: currentSignature.style.width,
+                                height: currentSignature.style.height,
+                                left: currentSignature.style.left,
+                                top: currentSignature.style.top
+                            };
+                        } else {
+                            console.error('Signature field not found in array:', fieldId); // Debug log
+                        }
+
+                        signaturePad.clear();
+                        currentSignature = null;
+                    };
+                });
+
+                // Submit signatures
+                submitSignaturesBtn.addEventListener('click', function() {
+                    // Check if all fields are signed by looking for the 'signed' class
+                    const totalFields = signatureFields.length;
+                    const signedFields = document.querySelectorAll('.signature-field.signed').length;
+                    
+                    if (signedFields < totalFields) {
+                        alert(`Please sign all ${totalFields - signedFields} remaining signature fields.`);
+                        return;
+                    }
+
+                    // Show loading state
+                    submitSignaturesBtn.disabled = true;
+                    submitSignaturesBtn.innerHTML = `
+                        <div class="flex items-center">
+                            <div class="loading-spinner w-5 h-5 mr-2"></div>
+                            <span>Processing...</span>
+                        </div>
+                    `;
+
+                    // Submit signatures to server
+                    fetch(`http://localhost:3000/api/documents/${documentId}/submit`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ signatures: signatureFields })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            throw new Error(data.error);
+                        }
+                        // Show success message with download options
+                        const successMessage = `
+                            <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                                <div class="bg-white rounded-lg p-4 sm:p-6 max-w-md w-full">
+                                    <div class="text-center">
+                                        <svg class="mx-auto h-10 w-10 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                        <h3 class="mt-2 text-lg font-medium text-gray-900">Documento assinado com sucesso!</h3>
+                                        <p class="mt-1 text-sm text-gray-500">O documento foi assinado e está pronto para download.</p>
+                                    </div>
+                                    <div class="mt-4 sm:mt-6 flex flex-col sm:flex-row gap-3">
+                                        <a href="${data.downloadUrl}" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                            Baixar Documento
+                                        </a>
+                                        <a href="${data.logUrl}" class="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                            Baixar Log
+                                        </a>
+                                        <button onclick="window.location.href='/documents.html'" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                                            Voltar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        document.body.insertAdjacentHTML('beforeend', successMessage);
+                    })
+                    .catch(error => {
+                        console.error('Error submitting signatures:', error);
+                        alert('Error submitting signatures: ' + error.message);
+                        // Reset button state
+                        submitSignaturesBtn.disabled = false;
+                        submitSignaturesBtn.innerHTML = 'Enviar Assinaturas';
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>

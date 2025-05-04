@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentos - AldenSign</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-50 font-sans">
+    <div class="min-h-screen flex flex-col">
+        <header class="bg-white shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <h1 class="ml-2 text-base font-bold text-gray-800">AldenSign</h1>
+                    </div>
+                    <nav class="hidden sm:block">
+                        <ul class="flex space-x-4">
+                            <li><a href="/" class="text-gray-600 hover:text-blue-600 text-sm">Fazer upload</a></li>
+                            <li><a href="/documents.html" class="text-blue-600 font-medium text-sm">Meus documentos</a></li>
+                            <li>
+                                <button id="logout-btn" class="text-gray-600 hover:text-blue-600 text-sm">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                    </svg>
+                                </button>
+                            </li>
+                        </ul>
+                    </nav>
+                    <div class="sm:hidden">
+                        <button id="mobile-menu-button" class="text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500">
+                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="sm:hidden hidden" id="mobile-menu">
+                    <div class="pt-2 pb-3 space-y-1">
+                        <a href="/" class="bg-gray-100 text-gray-600 block px-3 py-2 rounded-md text-base font-medium" aria-current="page">Fazer upload</a>
+                        <a href="/documents.html" class="text-blue-600 block px-3 py-2 rounded-md text-base font-medium">Meus documentos</a>
+                        <button id="mobile-logout-btn" class="text-gray-600 block px-3 py-2 rounded-md text-base font-medium">
+                            Logout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-grow">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                <div class="bg-white rounded-lg shadow-sm">
+                    <div class="px-4 py-4 sm:px-6 border-b border-gray-200">
+                        <h2 class="text-base font-bold text-gray-900">Meus documentos</h2>
+                        <p class="mt-1 text-sm text-gray-500">Veja e baixe seus documentos</p>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Nome
+                                    </th>
+                                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Status
+                                    </th>
+                                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Data
+                                    </th>
+                                    <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Ações
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="documents-list" class="bg-white divide-y divide-gray-200">
+                                </tbody>
+                        </table>
+                    </div>
+
+                    <div id="empty-state" class="hidden py-8">
+                        <div class="text-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <h3 class="mt-2 text-sm font-medium text-gray-900">Nenhum documento</h3>
+                            <p class="mt-1 text-xs text-gray-500">Comece fazendo upload de um documento.</p>
+                            <div class="mt-4">
+                                <a href="/" class="inline-flex items-center px-3 py-2 border border-transparent shadow-sm text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                                    <svg class="-ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    Fazer upload
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="bg-white border-t border-gray-200 py-2">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <p class="text-center text-gray-500 text-xs">© 2025 AldenSign. Todos os direitos reservados.</p>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check authentication status
+            fetch('/api/auth/status')
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.isAuthenticated) {
+                        window.location.href = '/login.html';
+                    } else {
+                        loadDocuments();
+                    }
+                });
+
+            // Logout button
+            const logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function() {
+                    fetch('/api/auth/logout', {
+                        method: 'POST'
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            window.location.href = '/login.html';
+                        }
+                    });
+                });
+            }
+
+            // Mobile Logout Button
+            const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
+            if (mobileLogoutBtn) {
+                mobileLogoutBtn.addEventListener('click', function() {
+                    fetch('/api/auth/logout', {
+                        method: 'POST'
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            window.location.href = '/login.html';
+                        }
+                    });
+                });
+            }
+
+            function loadDocuments() {
+                fetch('/api/documents')
+                    .then(response => response.json())
+                    .then(documents => {
+                        const tbody = document.getElementById('documents-list');
+                        const emptyState = document.getElementById('empty-state');
+
+                        if (documents.length === 0) {
+                            tbody.innerHTML = '';
+                            emptyState.classList.remove('hidden');
+                            return;
+                        }
+
+                        emptyState.classList.add('hidden');
+                        tbody.innerHTML = documents.map(doc => `
+                            <tr>
+                                <td class="px-3 py-3 whitespace-nowrap">
+                                    <div class="text-xs font-medium text-gray-900">${doc.originalName}</div>
+                                </td>
+                                <td class="px-3 py-3 whitespace-nowrap">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                        doc.status === 'signed'
+                                            ? 'bg-green-100 text-green-800'
+                                            : 'bg-yellow-100 text-yellow-800'
+                                    }">
+                                        ${doc.status === 'signed' ? 'Assinado' : 'Pendente'}
+                                    </span>
+                                </td>
+                                <td class="px-3 py-3 whitespace-nowrap text-xs text-gray-500">
+                                    ${doc.signedAt ? new Date(doc.signedAt).toLocaleDateString() : '-'}
+                                </td>
+                                <td class="px-3 py-3 whitespace-nowrap text-xs">
+                                    ${doc.status === 'signed'
+                                        ? `<div class="flex space-x-2">
+                                            <a href="${doc.downloadUrl}" class="text-blue-600 hover:text-blue-900" download>Baixar</a>
+                                            ${doc.logUrl ? `<a href="${doc.logUrl}" class="text-blue-600 hover:text-blue-900" download>Log</a>` : ''}
+                                            <button onclick="deleteDocument('${doc.id}')" class="text-red-600 hover:text-red-900">Excluir</button>
+                                        </div>`
+                                        : `<div class="flex space-x-2">
+                                            <a href="/sign/${doc.id}" class="text-blue-600 hover:text-blue-900">Assinar</a>
+                                            <button onclick="deleteDocument('${doc.id}')" class="text-red-600 hover:text-red-900">Excluir</button>
+                                        </div>`
+                                    }
+                                </td>
+                            </tr>
+                        `).join('');
+                    })
+                    .catch(error => {
+                        console.error('Erro ao carregar documentos:', error);
+                    });
+            }
+
+            // Add delete document function
+            window.deleteDocument = function(documentId) {
+                if (confirm('Tem certeza que deseja excluir este documento? Esta ação não pode ser desfeita.')) {
+                    fetch(`/api/documents/${documentId}`, {
+                        method: 'DELETE'
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            loadDocuments(); // Reload the documents list
+                        } else {
+                            alert('Erro ao excluir documento');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erro ao excluir documento:', error);
+                        alert('Erro ao excluir documento');
+                    });
+                }
+            };
+
+            // Mobile Menu Toggle
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+
+            if (mobileMenuButton && mobileMenu) {
+                mobileMenuButton.addEventListener('click', () => {
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+        });
+    </script>
+</body>
+</html>

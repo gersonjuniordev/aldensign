@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AldenSign - Assinatura digital de documentos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+        }
+        .signature-field {
+            border: 2px dashed #3b82f6;
+            background-color: rgba(59, 130, 246, 0.1);
+            cursor: move;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            z-index: 10;
+        }
+        .document-page, .pdf-page {
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            margin: 0 auto 15px auto;
+            position: relative;
+        }
+        #dropzone {
+            border: 2px dashed #cbd5e1;
+            transition: all 0.3s ease;
+        }
+        #dropzone.active {
+            border-color: #3b82f6;
+            background-color: rgba(59, 130, 246, 0.05);
+        }
+        .loading-spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid #3b82f6;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="font-sans">
+    <div class="min-h-screen flex flex-col">
+        <header class="bg-white shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
+                <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <h1 class="ml-2 text-lg font-bold text-gray-800">AldenSign</h1>
+                </div>
+                <nav class="hidden sm:block">
+                    <ul class="flex space-x-4 items-center">
+                        <li><a href="/" class="text-blue-600 font-medium text-sm">Dashboard</a></li>
+                        <li><a href="/documents.html" class="text-gray-600 hover:text-blue-600 text-sm">Documentos</a></li>
+                        <li><a href="#" class="text-gray-600 hover:text-blue-600 text-sm">Ajuda</a></li>
+                        <li>
+                            <button id="logout-btn" class="text-gray-600 hover:text-blue-600 text-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                </svg>
+                            </button>
+                        </li>
+                    </ul>
+                </nav>
+                <div class="sm:hidden">
+                    <button id="mobile-menu-button" class="text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="sm:hidden hidden" id="mobile-menu">
+                <div class="pt-2 pb-3 space-y-1">
+                    <a href="/" class="bg-gray-100 text-blue-600 block px-3 py-2 rounded-md text-base font-medium" aria-current="page">Dashboard</a>
+                    <a href="/documents.html" class="text-gray-600 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">Documentos</a>
+                    <a href="#" class="text-gray-600 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">Ajuda</a>
+                    <button id="mobile-logout-btn" class="text-gray-600 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-grow">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <div id="upload-section" class="mb-6">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
+                        <div>
+                            <h2 class="text-xl font-semibold text-gray-800">Fazer upload de documento</h2>
+                            <p class="text-gray-600 text-sm">Faça upload de um documento para adicionar campos de assinatura</p>
+                        </div>
+                    </div>
+                    
+                    <div id="dropzone" class="bg-white rounded-lg border-dashed p-6 text-center cursor-pointer">
+                        <input type="file" id="file-input" class="hidden" accept=".pdf,.doc,.docx,.txt">
+                        <div class="flex flex-col items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-blue-500 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                            </svg>
+                            <h3 class="text-base font-medium text-gray-800 mb-2">Arraste e solte seu documento aqui</h3>
+                            <p class="text-gray-500 text-sm mb-3">ou</p>
+                            <button id="browse-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm">
+                                Navegar por arquivos
+                            </button>
+                            <p class="text-xs text-gray-500 mt-2">Formatos suportados: PDF, DOC, DOCX, TXT</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="editor-section" class="hidden">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
+                        <div>
+                            <h2 id="document-title" class="text-xl font-semibold text-gray-800">Documento</h2>
+                            <p class="text-gray-600 text-sm">Adicione campos de assinatura e gere um link de assinatura</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2 mt-2 sm:mt-0 justify-end">
+                            <button id="add-signature-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md flex items-center text-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                </svg>
+                                Adicionar campo
+                            </button>
+                            <button id="save-btn" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-md flex items-center text-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                                </svg>
+                                Salvar e gerar
+                            </button>
+                            <button id="upload-new-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-3 py-2 rounded-md flex items-center text-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                </svg>
+                                Fazer upload
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col lg:flex-row gap-6">
+                        <div class="w-full">
+                            <div class="bg-gray-100 rounded-lg">
+                                <div id="document-container" class="overflow-auto max-h-[70vh]">
+                                    <div id="loading-indicator" class="flex items-center justify-center py-10">
+                                        <div class="loading-spinner mr-2"></div>
+                                        <span class="text-gray-600 text-sm">Carregando documento...</span>
+                                    </div>
+                                    <div id="pdf-container"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="w-full lg:w-1/3">
+                            <div class="bg-white p-4 rounded-lg shadow-sm">
+                                <div class="flex justify-between items-center mb-2">
+                                    <h3 class="text-md font-medium">Campos de assinatura</h3>
+                                    <span id="field-count" class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">0 campos</span>
+                                </div>
+                                <p id="no-fields-message" class="text-sm text-gray-500">Nenhum campo de assinatura adicionado ainda.</p>
+                                <ul id="fields-list" class="mt-2 grid grid-cols-1 md:grid-cols-1 gap-2"></ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="bg-white border-t border-gray-200 py-2 mt-8">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <p class="text-center text-gray-500 text-xs">© 2025 AldenSign. Todos os direitos reservados.</p>
+            </div>
+        </footer>
+    </div>
+
+    <div id="link-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-4 sm:p-6">
+            <div class="flex justify-between items-start mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Link de documento gerado</h3>
+                <button id="close-modal" class="text-gray-500 hover:text-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="mb-4 sm:mb-6">
+                <div class="bg-blue-50 p-3 rounded-md mb-4">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 mt-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div class="ml-3 text-sm">
+                            Compartilhe este link com o destinatário para assinar o documento. O link expirará em 7 dias.
+                        </div>
+                    </div>
+                </div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Link de assinatura</label>
+                <div class="flex flex-col sm:flex-row">
+                    <input id="document-link" type="text" class="flex-grow px-3 py-2 border border-gray-300 rounded-t-md sm:rounded-l-md sm:rounded-r-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" value="https://docusignpro.com/sign/abc123xyz456" readonly>
+                    <button id="copy-link" class="bg-gray-100 hover:bg-gray-200 px-3 py-2 border border-l-0 border-gray-300 rounded-b-md sm:rounded-r-md sm:rounded-l-none text-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 0 002 2z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="flex justify-end mt-4">
+                <button id="done-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm">
+                    Pronto
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check authentication status
+            fetch('/api/auth/status')
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.isAuthenticated) {
+                        window.location.href = '/login.html';
+                    }
+                });
+
+            // Logout button
+            const logoutBtn = document.getElementById('logout-btn');
+            if(logoutBtn){
+                logoutBtn.addEventListener('click', function() {
+                    fetch('/api/auth/logout', {
+                        method: 'POST'
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            window.location.href = '/login.html';
+                        }
+                    });
+                });
+            }
+
+            // Mobile Logout Button
+            const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
+            if (mobileLogoutBtn) {
+                mobileLogoutBtn.addEventListener('click', function() {
+                    fetch('/api/auth/logout', {
+                        method: 'POST'
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            window.location.href = '/login.html';
+                        }
+                    });
+                });
+            }
+
+            // Mobile Menu Toggle
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+
+            if (mobileMenuButton && mobileMenu) {
+                mobileMenuButton.addEventListener('click', () => {
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+
+            // Initialize PDF.js
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+            
+            let signatureCounter = 0;
+            let activeSignatureField = null;
+            let offsetX, offsetY;
+            let currentPdf = null;
+            let currentFileName = '';
+            let signatureFields = [];
+            let currentDocumentId = null;
+
+            // DOM elements
+            const dropzone = document.getElementById('dropzone');
+            const fileInput = document.getElementById('file-input');
+            const browseBtn = document.getElementById('browse-btn');
+            const uploadSection = document.getElementById('upload-section');
+            const editorSection = document.getElementById('editor-section');
+            const documentTitle = document.getElementById('document-title');
+            const pdfContainer = document.getElementById('pdf-container');
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const addSignatureBtn = document.getElementById('add-signature-btn');
+            const saveBtn = document.getElementById('save-btn');
+            const uploadNewBtn = document.getElementById('upload-new-btn');
+            const noFieldsMessage = document.getElementById('no-fields-message');
+            const fieldsList = document.getElementById('fields-list');
+            const fieldCount = document.getElementById('field-count');
+
+            // File upload event listeners
+            dropzone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                dropzone.classList.add('active');
+            });
+
+            dropzone.addEventListener('dragleave', function() {
+                dropzone.classList.remove('active');
+            });
+
+            dropzone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                dropzone.classList.remove('active');
+                
+                if (e.dataTransfer.files.length) {
+                    handleFileUpload(e.dataTransfer.files[0]);
+                }
+            });
+
+            browseBtn.addEventListener('click', function() {
+                fileInput.click();
+            });
+
+            fileInput.addEventListener('change', function() {
+                if (fileInput.files.length) {
+                    handleFileUpload(fileInput.files[0]);
+                }
+            });
+
+            // Add signature field button
+            addSignatureBtn.addEventListener('click', function() {
+                addSignatureField();
+                updateFieldsList();
+            });
+
+            // Save button
+            saveBtn.addEventListener('click', function() {
+                if (signatureFields.length === 0) {
+                    alert('Please add at least one signature field before generating a link.');
+                    return;
+                }
+
+                // Save signature fields to server
+                fetch(`/api/documents/${currentDocumentId}/signatures`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ signatureFields })
+                })
+                .then(response => response.json())
+                .then(() => {
+                    // Generate signing link
+                    return fetch(`/api/documents/${currentDocumentId}/generate-link`, {
+                        method: 'POST'
+                    });
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.signingLink) {
+                        document.getElementById('document-link').value = data.signingLink;
+                        document.getElementById('link-modal').classList.remove('hidden');
+                    } else {
+                        throw new Error('Failed to generate signing link');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving document:', error);
+                    alert('Error saving document. Please try again.');
+                });
+            });
+
+            // Upload new button
+            uploadNewBtn.addEventListener('click', function() {
+                resetEditor();
+                uploadSection.classList.remove('hidden');
+                editorSection.classList.add('hidden');
+            });
+
+            // Close modal button
+            document.getElementById('close-modal').addEventListener('click', function() {
+                document.getElementById('link-modal').classList.add('hidden');
+            });
+
+            // Done button in modal
+            document.getElementById('done-btn').addEventListener('click', function() {
+                document.getElementById('link-modal').classList.add('hidden');
+            });
+
+            // Copy link button
+            document.getElementById('copy-link').addEventListener('click', function() {
+                const linkInput = document.getElementById('document-link');
+                linkInput.select();
+                document.execCommand('copy');
+                
+                // Show copied feedback
+                this.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>';
+                setTimeout(() => {
+                    this.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 0 002 2z" /></svg>';
+                }, 2000);
+            });
+
+            function handleFileUpload(file) {
+                // Check if file is valid
+                const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
+                if (!validTypes.includes(file.type)) {
+                    alert('Please upload a PDF, DOC, DOCX, or TXT file.');
+                    return;
+                }
+
+                // Show loading indicator
+                uploadSection.classList.add('hidden');
+                editorSection.classList.remove('hidden');
+                loadingIndicator.classList.remove('hidden');
+                pdfContainer.innerHTML = '';
+                
+                // Set document title
+                currentFileName = file.name;
+                documentTitle.textContent = file.name;
+                
+                // Reset signature fields
+                signatureCounter = 0;
+                signatureFields = [];
+                updateFieldsList();
+
+                // Create FormData and send file to server
+                const formData = new FormData();
+                formData.append('document', file);
+
+                fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.documentId) {
+                        throw new Error('No document ID received from server');
+                    }
+                    
+                    currentDocumentId = data.documentId;
+                    
+                    // Handle different file types
+                    if (file.type === 'application/pdf') {
+                        // For PDFs, load directly from the uploaded file
+                        loadPdfFile(file);
+                    } else {
+                        // For other file types, load from the server URL
+                        loadTextFile(file);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error uploading file:', error);
+                    loadingIndicator.classList.add('hidden');
+                    alert('Error uploading file. Please try again.');
+                });
+            }
+
+            function loadPdfFile(file) {
+                const fileReader = new FileReader();
+                
+                fileReader.onload = function() {
+                    const typedarray = new Uint8Array(this.result);
+                    
+                    // Load the PDF with error handling
+                    pdfjsLib.getDocument({
+                        data: typedarray,
+                        cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/cmaps/',
+                        cMapPacked: true
+                    }).promise.then(function(pdf) {
+                        currentPdf = pdf;
+                        loadingIndicator.classList.add('hidden');
+                        pdfContainer.innerHTML = ''; // Clear container before adding new pages
+                        
+                        // Load all pages
+                        const pagePromises = [];
+                        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                            pagePromises.push(renderPage(pdf, pageNum));
+                        }
+                        
+                        return Promise.all(pagePromises);
+                    }).catch(function(error) {
+                        console.error('Error loading PDF:', error);
+                        loadingIndicator.classList.add('hidden');
+                        pdfContainer.innerHTML = `
+                            <div class="p-8 text-center text-red-600">
+                                <p class="mb-4">Error loading PDF: ${error.message}</p>
+                                <p class="text-sm">Please make sure you uploaded a valid PDF file.</p>
+                            </div>`;
+                    });
+                };
+                
+                fileReader.onerror = function(error) {
+                    console.error('Error reading file:', error);
+                    loadingIndicator.classList.add('hidden');
+                    pdfContainer.innerHTML = `
+                        <div class="p-8 text-center text-red-600">
+                            <p class="mb-4">Error reading file</p>
+                            <p class="text-sm">Please try uploading the file again.</p>
+                        </div>`;
+                };
+                
+                fileReader.readAsArrayBuffer(file);
+            }
+
+            function loadTextFile(file) {
+                const fileReader = new FileReader();
+                
+                fileReader.onload = function() {
+                    loadingIndicator.classList.add('hidden');
+                    
+                    // Create a simple document viewer for text files
+                    const content = this.result;
+                    const pageDiv = document.createElement('div');
+                    pageDiv.className = 'document-page w-full';
+                    pageDiv.style.width = '816px';
+                    pageDiv.style.minHeight = '1056px';
+                    pageDiv.style.padding = '40px';
+                    
+                    // Format the content
+                    let formattedContent = '';
+                    if (file.type === 'text/plain') {
+                        formattedContent = `<pre class="whitespace-pre-wrap font-sans">${escapeHtml(content)}</pre>`;
+                    } else {
+                        // For DOC/DOCX, we can only show a basic representation
+                        formattedContent = `<div class="p-4 bg-yellow-50 mb-4 rounded">
+                            <p class="text-yellow-700 text-sm">This is a preview of your document. Some formatting may not be preserved.</p>
+                        </div>
+                        <div class="whitespace-pre-wrap">${escapeHtml(content)}</div>`;
+                    }
+                    
+                    pageDiv.innerHTML = formattedContent;
+                    pdfContainer.appendChild(pageDiv);
+                };
+                
+                if (file.type === 'text/plain') {
+                    fileReader.readAsText(file);
+                } else {
+                    // For DOC/DOCX, we'll just show a placeholder
+                    loadingIndicator.classList.add('hidden');
+                    const pageDiv = document.createElement('div');
+                    pageDiv.className = 'document-page w-full';
+                    pageDiv.style.width = '816px';
+                    pageDiv.style.minHeight = '1056px';
+                    pageDiv.style.padding = '40px';
+                    
+                    pageDiv.innerHTML = `
+                        <div class="p-6 bg-blue-50 rounded-lg mb-6">
+                            <h3 class="text-lg font-medium text-blue-800 mb-2">Document Preview</h3>
+                            <p class="text-blue-700 text-sm">This is a preview of your ${file.type.includes('openxml') ? 'DOCX' : 'DOC'} document: ${escapeHtml(file.name)}</p>
+                            <p class="mt-2 text-blue-600 text-sm">You can add signature fields to this document using the "Add Signature Field" button.</p>
+                        </div>
+                        <div class="border-b border-gray-300 my-4"></div>
+                        <h2 class="text-xl font-bold mb-4">${escapeHtml(file.name)}</h2>
+                        <p class="mb-3 text-sm">Document content would appear here in the actual implementation.</p>
+                        <p class="mb-3 text-sm">The document has been successfully loaded and you can now add signature fields where needed.</p>
+                    `;
+                    pdfContainer.appendChild(pageDiv);
+                }
+            }
+
+            function renderPage(pdf, pageNumber) {
+                return pdf.getPage(pageNumber).then(function(page) {
+                    const viewport = page.getViewport({ scale: 1.5 });
+                    
+                    // Create a div for this page
+                    const pageDiv = document.createElement('div');
+                    pageDiv.className = 'pdf-page';
+                    pageDiv.dataset.pageNumber = pageNumber;// Create canvas for PDF page
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+                    
+                    // Add canvas to page div
+                    pageDiv.appendChild(canvas);
+                    pdfContainer.appendChild(pageDiv);
+                    
+                    // Render PDF page into canvas context
+                    const renderContext = {
+                        canvasContext: context,
+                        viewport: viewport
+                    };
+                    
+                    return page.render(renderContext).promise;
+                }).catch(function(error) {
+                    console.error(`Error rendering page ${pageNumber}:`, error);
+                    return Promise.reject(error);
+                });
+            }
+
+            function addSignatureField() {
+                signatureCounter++;
+                const signatureField = document.createElement('div');
+                signatureField.className = 'signature-field';
+                signatureField.id = `signature-${signatureCounter}`;
+                signatureField.dataset.fieldId = signatureCounter;
+                signatureField.style.width = '200px';
+                signatureField.style.height = '60px';
+                signatureField.style.left = '100px';
+                signatureField.style.top = '100px';
+                
+                // Add signature icon and text
+                signatureField.innerHTML = `
+                    <div class="flex items-center justify-center w-full h-full">
+                        <div class="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                            <span class="text-blue-600 text-sm font-medium">Signature #${signatureCounter}</span>
+                        </div>
+                    </div>
+                    <div class="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center cursor-pointer delete-btn" style="transform: translate(50%, -50%);">×</div>
+                `;
+                
+                // Add to first page by default
+                const firstPage = document.querySelector('.document-page, .pdf-page');
+                if (firstPage) {
+                    firstPage.appendChild(signatureField);
+                    
+                    // Store signature field info
+                    const pageNumber = firstPage.dataset.pageNumber || 1;
+                    signatureFields.push({
+                        id: signatureCounter,
+                        page: pageNumber,
+                        left: '100px',
+                        top: '100px',
+                        width: '200px',
+                        height: '60px'
+                    });
+                    
+                    // Make the signature field draggable
+                    makeSignatureFieldDraggable(signatureField);
+                    
+                    // Add delete functionality
+                    const deleteBtn = signatureField.querySelector('.delete-btn');
+                    deleteBtn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        signatureField.remove();
+                        
+                        // Remove from stored fields
+                        const fieldId = parseInt(signatureField.dataset.fieldId);
+                        signatureFields = signatureFields.filter(field => field.id !== fieldId);
+                        updateFieldsList();
+                    });
+                }
+            }
+
+            function makeSignatureFieldDraggable(element) {
+                element.addEventListener('mousedown', startDrag);
+                
+                function startDrag(e) {
+                    if (e.target.classList.contains('delete-btn')) return;
+                    
+                    e.preventDefault();
+                    activeSignatureField = element;
+                    
+                    // Calculate the offset of the mouse pointer from the element's top-left corner
+                    const rect = element.getBoundingClientRect();
+                    offsetX = e.clientX - rect.left;
+                    offsetY = e.clientY - rect.top;
+                    
+                    // Add event listeners for dragging and dropping
+                    document.addEventListener('mousemove', drag);
+                    document.addEventListener('mouseup', stopDrag);
+                }
+                
+                function drag(e) {
+                    if (!activeSignatureField) return;
+                    
+                    // Get the document container's position and dimensions
+                    const container = activeSignatureField.closest('.document-page, .pdf-page');
+                    const containerRect = container.getBoundingClientRect();
+                    
+                    // Calculate new position within the container
+                    let newX = e.clientX - containerRect.left - offsetX;
+                    let newY = e.clientY - containerRect.top - offsetY;
+                    
+                    // Ensure the signature field stays within the container
+                    const maxX = containerRect.width - activeSignatureField.offsetWidth;
+                    const maxY = containerRect.height - activeSignatureField.offsetHeight;
+                    
+                    newX = Math.max(0, Math.min(newX, maxX));
+                    newY = Math.max(0, Math.min(newY, maxY));
+                    
+                    // Update position
+                    activeSignatureField.style.left = newX + 'px';
+                    activeSignatureField.style.top = newY + 'px';
+                    
+                    // Update stored position
+                    const fieldId = parseInt(activeSignatureField.dataset.fieldId);
+                    const fieldIndex = signatureFields.findIndex(field => field.id === fieldId);
+                    if (fieldIndex !== -1) {
+                        signatureFields[fieldIndex].left = newX + 'px';
+                        signatureFields[fieldIndex].top = newY + 'px';
+                    }
+                }
+                
+                function stopDrag() {
+                    if (activeSignatureField) {
+                        updateFieldsList();
+                        activeSignatureField = null;
+                    }
+                    document.removeEventListener('mousemove', drag);
+                    document.removeEventListener('mouseup', stopDrag);
+                }
+            }
+
+            function updateFieldsList() {
+                // Update field count
+                fieldCount.textContent = `${signatureFields.length} field${signatureFields.length !== 1 ? 's' : ''}`;
+                
+                if (signatureFields.length === 0) {
+                    noFieldsMessage.classList.remove('hidden');
+                    fieldsList.innerHTML = '';
+                } else {
+                    noFieldsMessage.classList.add('hidden');
+                    fieldsList.innerHTML = '';
+                    
+                    signatureFields.forEach(field => {
+                        const li = document.createElement('li');
+                        li.className = 'bg-gray-50 p-2 rounded flex justify-between items-center text-sm';
+                        li.innerHTML = `
+                            <div class="flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-600 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                </svg>
+                                <span class="font-medium">Signature #${field.id}</span>
+                            </div>
+                            <span class="text-xs text-gray-500">Page ${field.page}</span>
+                        `;
+                        fieldsList.appendChild(li);
+                    });
+                }
+            }
+
+            function resetEditor() {
+                pdfContainer.innerHTML = '';
+                signatureCounter = 0;
+                signatureFields = [];
+                currentPdf = null;
+                currentFileName = '';
+                updateFieldsList();
+            }
+
+            function escapeHtml(unsafe) {
+                return unsafe
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
+
+            // Generate a random document ID for the link
+            function generateDocumentId() {
+                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+                let result = '';
+                for (let i = 0; i < 12; i++) {
+                    result += chars.charAt(Math.floor(Math.random() * chars.length));
+                }
+                return result;
+            }
+
+            // Set the document link with a random ID
+            document.getElementById('document-link').value = `https://docusignpro.com/sign/${generateDocumentId()}`;
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93868f1a470a80fe',t:'MTc0NjAxMTA3My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

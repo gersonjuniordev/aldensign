@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - AldenSign</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-50 font-sans">
+    <div class="min-h-screen flex flex-col">
+        <header class="bg-white shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+                <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <h1 class="ml-2 text-lg font-bold text-gray-800">AldenSign</h1>
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-grow flex items-center justify-center py-10">
+            <div class="max-w-md w-full space-y-6 p-6 bg-white rounded-lg shadow-md">
+                <div id="login-form">
+                    <div class="text-center">
+                        <h2 class="text-2xl font-semibold text-gray-900">Bem-vindo de volta</h2>
+                        <p class="mt-1 text-sm text-gray-600">Entre na sua conta</p>
+                    </div>
+                    <form class="mt-6 space-y-4" id="loginForm">
+                        <div class="rounded-md shadow-sm space-y-3">
+                            <div>
+                                <label for="login-email" class="sr-only">Email</label>
+                                <input id="login-email" name="email" type="email" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 text-sm" placeholder="Email">
+                            </div>
+                            <div>
+                                <label for="login-password" class="sr-only">Senha</label>
+                                <input id="login-password" name="password" type="password" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 text-sm" placeholder="Senha">
+                            </div>
+                        </div>
+
+                        <div>
+                            <button type="submit" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                Entrar
+                            </button>
+                        </div>
+                    </form>
+                    <div class="mt-4 text-center">
+                        <p class="text-sm text-gray-600">
+                            Não tem uma conta?
+                            <button id="show-register" class="font-medium text-blue-600 hover:text-blue-500">Cadastrar</button>
+                        </p>
+                    </div>
+                </div>
+
+                <div id="register-form" class="hidden">
+                    <div class="text-center">
+                        <h2 class="text-2xl font-semibold text-gray-900">Crie uma conta</h2>
+                        <p class="mt-1 text-sm text-gray-600">Junte-se ao AldenSign hoje</p>
+                    </div>
+                    <form class="mt-6 space-y-4" id="registerForm">
+                        <div class="rounded-md shadow-sm space-y-3">
+                            <div>
+                                <label for="register-name" class="sr-only">Nome completo</label>
+                                <input id="register-name" name="name" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 text-sm" placeholder="Nome completo">
+                            </div>
+                            <div>
+                                <label for="register-cpf" class="sr-only">CPF</label>
+                                <input id="register-cpf" name="cpf" type="text" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 text-sm" placeholder="CPF">
+                            </div>
+                            <div>
+                                <label for="register-email" class="sr-only">Email</label>
+                                <input id="register-email" name="email" type="email" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 text-sm" placeholder="Email">
+                            </div>
+                            <div>
+                                <label for="register-password" class="sr-only">Senha</label>
+                                <input id="register-password" name="password" type="password" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 text-sm" placeholder="Senha">
+                            </div>
+                            <div>
+                                <label for="register-confirm-password" class="sr-only">Confirmar senha</label>
+                                <input id="register-confirm-password" name="confirmPassword" type="password" required class="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 text-sm" placeholder="Confirmar senha">
+                            </div>
+                        </div>
+
+                        <div>
+                            <button type="submit" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                Cadastrar
+                            </button>
+                        </div>
+                    </form>
+                    <div class="mt-4 text-center">
+                        <p class="text-sm text-gray-600">
+                            Já tem uma conta?
+                            <button id="show-login" class="font-medium text-blue-600 hover:text-blue-500">Entrar</button>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="bg-white border-t border-gray-200 py-2">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <p class="text-center text-gray-500 text-xs">© 2025 AldenSign. Todos os direitos reservados.</p>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const loginForm = document.getElementById('login-form');
+            const registerForm = document.getElementById('register-form');
+            const showRegisterBtn = document.getElementById('show-register');
+            const showLoginBtn = document.getElementById('show-login');
+            const loginFormElement = document.getElementById('loginForm');
+            const registerFormElement = document.getElementById('registerForm');
+
+            // Toggle between login and register forms
+            showRegisterBtn.addEventListener('click', function() {
+                loginForm.classList.add('hidden');
+                registerForm.classList.remove('hidden');
+            });
+
+            showLoginBtn.addEventListener('click', function() {
+                registerForm.classList.add('hidden');
+                loginForm.classList.remove('hidden');
+            });
+
+            // Handle login form submission
+            loginFormElement.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const email = document.getElementById('login-email').value;
+                const password = document.getElementById('login-password').value;
+
+                fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.href = '/';
+                    } else {
+                        alert(data.error || 'Login failed');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Login failed. Please try again.');
+                });
+            });
+
+            // Handle register form submission
+            registerFormElement.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const name = document.getElementById('register-name').value;
+                const cpf = document.getElementById('register-cpf').value;
+                const email = document.getElementById('register-email').value;
+                const password = document.getElementById('register-password').value;
+                const confirmPassword = document.getElementById('register-confirm-password').value;
+
+                if (password !== confirmPassword) {
+                    alert('Passwords do not match');
+                    return;
+                }
+
+                fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name, email, password, cpf })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.href = '/';
+                    } else {
+                        alert(data.error || 'Registration failed');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Registration failed. Please try again.');
+                });
+            });
+        });
+    </script>
+</body>
+</html>
